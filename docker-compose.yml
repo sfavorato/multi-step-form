@@ -1,0 +1,51 @@
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:8.0.3
+    container_name: mongodb
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: nest
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    networks:
+      - app-network
+
+  # NestJS API Server
+  api:
+    image: node:20
+    container_name: api
+    working_dir: /app
+    volumes:
+      - ./msf-server:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run start:dev"
+    environment:
+      MONGODB_URL: mongodb://root:password@mongodb:27017/nest?authSource=admin
+    depends_on:
+      - mongodb
+    ports:
+      - '3000:3000'
+    networks:
+      - app-network
+
+  # Vite React Client
+  client:
+    image: node:20
+    container_name: client
+    working_dir: /app
+    environment:
+      VITE_API_URL: http://localhost:3000
+    volumes:
+      - ./msf-client:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - '5173:5173'
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
